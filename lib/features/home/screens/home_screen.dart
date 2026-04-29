@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../widgets/news_item_skeleton.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/widgets/error_display.dart';
+import '../../../core/services/database_service.dart';
 import '../widgets/news_card.dart';
 import '../providers/news_provider.dart';
 import '../model/news_article.dart';
@@ -16,163 +18,103 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
-  int _currentPageIndex = 0;
-  int _itemsPerPage = 10;
+  bool _showBackToTop = false;
 
-  Widget _buildNewsList(List<NewsArticle> news) {
-    final totalPages = (news.length / _itemsPerPage).ceil();
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
-    if (_currentPageIndex >= totalPages && totalPages > 0) {
-      _currentPageIndex = totalPages - 1;
+  void _onScroll() {
+    // Show/hide back to top button
+    if (_scrollController.offset > 400 && !_showBackToTop) {
+      setState(() => _showBackToTop = true);
+    } else if (_scrollController.offset <= 400 && _showBackToTop) {
+      setState(() => _showBackToTop = false);
     }
 
-    final start = _currentPageIndex * _itemsPerPage;
-    final end = (start + _itemsPerPage > news.length)
-        ? news.length
-        : start + _itemsPerPage;
+    // Infinite scroll trigger
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      ref.read(newsProvider.notifier).loadMore();
+    }
+  }
 
-    final pageItems = news.sublist(start, end);
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.fastOutSlowIn,
+    );
+  }
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            itemCount: pageItems.length,
-            itemBuilder: (ctx, idx) {
-              final article = pageItems[idx];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: InkWell(
-                  onTap: () => context.push('/article', extra: article),
-                  borderRadius: BorderRadius.circular(16),
-                  child: NewsCard(article: article),
-                ),
-              );
-            },
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.only(bottom: 100),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
+  Widget _buildSearchHistory() {
+    final historyAsync = ref.watch(searchHistoryProvider);
+    return historyAsync.when(
+      data: (history) {
+        if (history.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Show:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).hintColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).dividerColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButton<int>(
-                          value: _itemsPerPage,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-                          dropdownColor: Theme.of(context).cardColor,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                _itemsPerPage = value;
-                                _currentPageIndex = 0;
-                              });
-                            }
-                          },
-                          items: [10, 20, 50].map((int value) {
-                            return DropdownMenuItem<int>(
-                              value: value,
-                              child: Text('$value'),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Total: ${news.length} articles',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).hintColor,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: totalPages,
-                  itemBuilder: (context, index) {
-                    final isSelected = index == _currentPageIndex;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: InkWell(
-                        onTap: () => setState(() => _currentPageIndex = index),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).dividerColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).dividerColor.withOpacity(0.2),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.onPrimary
-                                  : Theme.of(context).textTheme.bodyMedium?.color,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+              Text(
+                'RECENT SEARCHES',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).hintColor,
+                  letterSpacing: 1.2,
                 ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: history.map((query) => ActionChip(
+                  label: Text(query, style: const TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    _searchController.text = query;
+                    ref.read(newsProvider.notifier).loadNews(searchQuery: query);
+                  },
+                )).toList(),
               ),
             ],
           ),
-        ),
-      ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildNewsList(List<NewsArticle> news) {
+    if (news.isEmpty) {
+      return EmptyState(
+        icon: Icons.search_off_outlined,
+        title: 'No results found',
+        message: 'Try searching for something else or check your connection.',
+        onAction: () => ref.read(newsProvider.notifier).loadNews(),
+        actionLabel: 'Refresh Feed',
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.only(top: 8, bottom: 180),
+      itemCount: news.length,
+      itemBuilder: (ctx, idx) {
+        final article = news[idx];
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: InkWell(
+            onTap: () => context.push('/article', extra: article),
+            borderRadius: BorderRadius.circular(16),
+            child: NewsCard(article: article),
+          ),
+        );
+      },
     );
   }
 
@@ -194,6 +136,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   hintStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
                 ),
                 style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                onSubmitted: (value) {
+                  if (value.isNotEmpty) {
+                    ref.read(databaseServiceProvider).saveSearch(value);
+                    ref.read(newsProvider.notifier).loadNews(searchQuery: value);
+                    ref.invalidate(searchHistoryProvider);
+                  }
+                },
               )
             : const Text(
                 'NEWS',
@@ -235,10 +184,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+      floatingActionButton: _showBackToTop
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 140), // Lift above Ad + Navbar
+              child: FloatingActionButton(
+                onPressed: _scrollToTop,
+                mini: true,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: const Icon(Icons.arrow_upward, color: Colors.white),
+              ),
+            )
+          : null,
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
+            if (_isSearching && _searchController.text.isEmpty) _buildSearchHistory(),
             if (_isSearching && _searchController.text.isNotEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -269,7 +230,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 data: (news) => RefreshIndicator(
                   onRefresh: () async {
                     await ref.read(newsProvider.notifier).loadNews(forceRefresh: true);
-                    setState(() => _currentPageIndex = 0);
                   },
                   child: _buildNewsList(news),
                 ),
@@ -293,6 +253,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 }

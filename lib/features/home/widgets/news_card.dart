@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../core/services/database_service.dart';
+import '../../../core/services/ad_service.dart';
 import '../model/news_article.dart';
 import '../../saved_articles/providers/saved_articles_provider.dart';
 
@@ -15,9 +17,8 @@ class NewsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSaved = ref.watch(
-      savedArticlesProvider.select((list) => list.any((a) => a.url == article.url)),
-    );
+    final savedArticlesAsync = ref.watch(savedArticlesProvider);
+    final isSaved = savedArticlesAsync.valueOrNull?.any((a) => a.url == article.url) ?? false;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -70,19 +71,27 @@ class NewsCard extends ConsumerWidget {
                         color: Theme.of(context).colorScheme.primary,
                         size: 20,
                       ),
-                      onPressed: () {
-                        final notifier = ref.read(savedArticlesProvider.notifier);
-                        final wasSaved = notifier.isSaved(article);
-                        notifier.toggleSave(article);
-                        ScaffoldMessenger.of(context).clearSnackBars();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              wasSaved ? 'Removed from saved' : 'Saved for later',
+                      onPressed: () async {
+                        final db = ref.read(databaseServiceProvider);
+                        final adService = ref.read(adServiceProvider);
+                        
+                        final justSaved = await db.toggleSave(article);
+                        
+                        if (justSaved) {
+                          adService.incrementSaveCounterAndShowAd();
+                        }
+                        
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                justSaved ? 'Saved for later' : 'Removed from saved',
+                              ),
+                              duration: const Duration(seconds: 2),
                             ),
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
+                          );
+                        }
                       },
                     ),
                   ],

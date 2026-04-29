@@ -1,24 +1,27 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/database_service.dart';
 import '../services/news_service.dart';
 import 'news_provider.dart';
 import '../../home/model/news_article.dart';
 
 final trendingNotifierProvider = StateNotifierProvider<TrendingNotifier, AsyncValue<List<NewsArticle>>>((ref) {
   final service = ref.read(newsServiceProvider);
-  return TrendingNotifier(service);
+  final db = ref.read(databaseServiceProvider);
+  return TrendingNotifier(service, db);
 });
 
 class TrendingNotifier extends StateNotifier<AsyncValue<List<NewsArticle>>> {
   final NewsService _service;
+  final DatabaseService _db;
   int _currentLimit = 15;
 
-  TrendingNotifier(this._service) : super(const AsyncValue.loading()) {
+  TrendingNotifier(this._service, this._db) : super(const AsyncValue.loading()) {
     _init();
   }
 
   Future<void> _init() async {
-    final cached = await _service.getCachedArticles('cached_trending');
+    final cached = await _db.getCachedArticles('trending');
     if (cached.isNotEmpty) {
       state = AsyncValue.data(cached);
       _refreshTrending();

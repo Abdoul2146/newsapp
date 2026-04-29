@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/services/database_service.dart';
+import '../../../core/services/ad_service.dart';
 import '../../home/model/news_article.dart';
 import '../../saved_articles/providers/saved_articles_provider.dart';
 
@@ -12,10 +14,9 @@ class DetailActionButtons extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Correct reactive way to watch if this specific article is saved
-    final isSaved = ref
-        .watch(savedArticlesProvider)
-        .any((a) => a.url == article.url);
+    // Correct reactive way to watch if this specific article is saved from Isar stream
+    final savedArticlesAsync = ref.watch(savedArticlesProvider);
+    final isSaved = savedArticlesAsync.valueOrNull?.any((a) => a.url == article.url) ?? false;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -24,20 +25,28 @@ class DetailActionButtons extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              onPressed: () {
-                final notifier = ref.read(savedArticlesProvider.notifier);
-                notifier.toggleSave(article);
+              onPressed: () async {
+                final db = ref.read(databaseServiceProvider);
+                final adService = ref.read(adServiceProvider);
+                
+                final justSaved = await db.toggleSave(article);
+                
+                if (justSaved) {
+                  adService.incrementSaveCounterAndShowAd();
+                }
 
-                ScaffoldMessenger.of(context).clearSnackBars();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isSaved ? 'Removed from saved' : 'Saved to collection',
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        justSaved ? 'Saved to collection' : 'Removed from saved',
+                      ),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  );
+                }
               },
               icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
               color: isSaved ? Theme.of(context).colorScheme.primary : null,

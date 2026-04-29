@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/services/database_service.dart';
+import '../../../core/services/ad_service.dart';
 import '../../home/model/news_article.dart';
 import '../../saved_articles/providers/saved_articles_provider.dart';
-// import 'package:intl/intl.dart';
 
 class TrendingItem extends ConsumerWidget {
   final int rank;
@@ -12,9 +13,8 @@ class TrendingItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSaved = ref
-        .watch(savedArticlesProvider)
-        .any((a) => a.url == article.url);
+    final savedArticlesAsync = ref.watch(savedArticlesProvider);
+    final isSaved = savedArticlesAsync.valueOrNull?.any((a) => a.url == article.url) ?? false;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -67,19 +67,27 @@ class TrendingItem extends ConsumerWidget {
                   ? Theme.of(context).colorScheme.primary
                   : Colors.grey,
             ),
-            onPressed: () {
-              final notifier = ref.read(savedArticlesProvider.notifier);
-              notifier.toggleSave(article);
+            onPressed: () async {
+              final db = ref.read(databaseServiceProvider);
+              final adService = ref.read(adServiceProvider);
+              
+              final justSaved = await db.toggleSave(article);
 
-              ScaffoldMessenger.of(context).clearSnackBars();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isSaved ? 'Removed from saved' : 'Saved for later',
+              if (justSaved) {
+                adService.incrementSaveCounterAndShowAd();
+              }
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      justSaved ? 'Saved for later' : 'Removed from saved',
+                    ),
+                    duration: const Duration(seconds: 2),
                   ),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
+                );
+              }
             },
           ),
         ],

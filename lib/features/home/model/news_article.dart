@@ -1,14 +1,34 @@
+import 'package:hive/hive.dart';
+
+part 'news_article.g.dart';
+
+@HiveType(typeId: 0)
 class NewsArticle {
-  final String title;
+  @HiveField(0)
   final String url;
+  
+  @HiveField(1)
+  final String title;
+  
+  @HiveField(2)
   final String imageUrl;
+  
+  @HiveField(3)
   final DateTime date;
+
+  @HiveField(4)
+  bool isSaved;
+
+  @HiveField(5)
+  String? cacheType;
 
   NewsArticle({
     required this.title,
     required this.url,
     required this.imageUrl,
     required this.date,
+    this.isSaved = false,
+    this.cacheType,
   });
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
@@ -17,10 +37,8 @@ class NewsArticle {
 
     if (dateStr.isNotEmpty) {
       try {
-        // GDELT extended format: 20241004T203000Z
         parsedDate = DateTime.parse(dateStr).toLocal();
       } catch (_) {
-        // Fallback for GDELT compressed format: 20241004203000
         if (dateStr.length >= 14) {
           try {
             final formattedStr =
@@ -28,7 +46,6 @@ class NewsArticle {
             parsedDate = DateTime.parse(formattedStr).toLocal();
           } catch (_) {}
         } else if (dateStr.length >= 8) {
-          // Fallback for short format: 20241004
           try {
             final formattedStr =
                 '${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}';
