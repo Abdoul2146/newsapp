@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -35,16 +36,19 @@ class AdService {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
+              _interstitialAd = null;
               loadInterstitialAd(); // Load next one
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               ad.dispose();
+              _interstitialAd = null;
               loadInterstitialAd();
             },
           );
         },
         onAdFailedToLoad: (err) {
           debugPrint('InterstitialAd failed to load: $err');
+          _interstitialAd = null;
         },
       ),
     );
@@ -74,16 +78,19 @@ class AdService {
           ad.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
+              _rewardedAd = null;
               loadRewardedAd();
             },
             onAdFailedToShowFullScreenContent: (ad, error) {
               ad.dispose();
+              _rewardedAd = null;
               loadRewardedAd();
             },
           );
         },
         onAdFailedToLoad: (err) {
           debugPrint('RewardedAd failed to load: $err');
+          _rewardedAd = null;
         },
       ),
     );
@@ -95,13 +102,33 @@ class AdService {
       return false;
     }
 
-    bool success = false;
+    final completer = Completer<bool>();
+    
     await _rewardedAd!.show(
       onUserEarnedReward: (ad, reward) {
-        success = true;
+        // User finished the ad!
+        completer.complete(true);
       },
     );
-    return success;
+
+    // This waits until the ad is either rewarded OR dismissed
+    // We also need to handle the dismissal case if it happens before reward
+    _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        if (!completer.isCompleted) completer.complete(false);
+        ad.dispose();
+        _rewardedAd = null;
+        loadRewardedAd();
+      },
+      onAdFailedToShowFullScreenContent: (ad, err) {
+        if (!completer.isCompleted) completer.complete(false);
+        ad.dispose();
+        _rewardedAd = null;
+        loadRewardedAd();
+      },
+    );
+
+    return completer.future;
   }
 
   bool get isRewardedAdLoaded => _rewardedAd != null;
