@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/flavor_config.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/shared_app_bar.dart';
 import '../../home/widgets/news_card.dart';
@@ -14,7 +15,7 @@ class SavedArticlesScreen extends ConsumerWidget {
     final savedArticlesAsync = ref.watch(savedArticlesProvider);
 
     return Scaffold(
-      appBar: const SharedAppBar(title: 'SAVED'),
+      appBar: SharedAppBar(title: FlavorConfig.instance.labels['headerSaved']!),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: savedArticlesAsync.when(

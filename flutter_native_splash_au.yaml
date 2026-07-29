@@ -1,0 +1,5 @@
+flutter_native_splash:
+  color: "#00843D"
+  image: "assets/flavors/au/logo.png"
+  android: true
+  ios: true

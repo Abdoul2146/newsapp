@@ -8,6 +8,7 @@ import '../../../core/services/database_service.dart';
 import '../widgets/news_card.dart';
 import '../providers/news_provider.dart';
 import '../model/news_article.dart';
+import '../../../core/config/flavor_config.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -144,9 +145,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   }
                 },
               )
-            : const Text(
-                'NEWS',
-                style: TextStyle(
+            : Text(
+                FlavorConfig.instance.labels['headerHome']!,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                   color: Colors.white,

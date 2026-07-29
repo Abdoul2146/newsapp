@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:go_router/go_router.dart';
+import '../config/flavor_config.dart';
 import '../services/ad_service.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
@@ -57,6 +58,7 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final labels = FlavorConfig.instance.labels;
     return Scaffold(
       body: widget.child,
       extendBody: true,
@@ -99,26 +101,26 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
                   });
                   _onItemTapped(index, context);
                 },
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.home_outlined),
-                    activeIcon: Icon(Icons.home),
-                    label: 'Home',
+                    icon: const Icon(Icons.home_outlined),
+                    activeIcon: const Icon(Icons.home),
+                    label: labels['navHome'],
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.trending_up_outlined),
-                    activeIcon: Icon(Icons.trending_up),
-                    label: 'Trending',
+                    icon: const Icon(Icons.trending_up_outlined),
+                    activeIcon: const Icon(Icons.trending_up),
+                    label: labels['navTrending'],
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.bookmark_border_outlined),
-                    activeIcon: Icon(Icons.bookmark),
-                    label: 'Saved',
+                    icon: const Icon(Icons.bookmark_border_outlined),
+                    activeIcon: const Icon(Icons.bookmark),
+                    label: labels['navSaved'],
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.settings_outlined),
-                    activeIcon: Icon(Icons.settings),
-                    label: 'Settings',
+                    icon: const Icon(Icons.settings_outlined),
+                    activeIcon: const Icon(Icons.settings),
+                    label: labels['navSettings'],
                   ),
                 ],
               ),

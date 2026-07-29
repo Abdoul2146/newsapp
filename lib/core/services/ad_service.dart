@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/flavor_config.dart';
 
 final adServiceProvider = Provider((ref) => AdService());
 
@@ -11,18 +12,17 @@ class AdService {
   RewardedAd? _rewardedAd;
   int _saveCounter = 0;
 
-  // Test IDs
   static String get bannerAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/6300978111'
-      : 'ca-app-pub-3940256099942544/2934735716';
+      ? FlavorConfig.instance.androidAdIds.banner
+      : FlavorConfig.instance.iosAdIds.banner;
 
   static String get interstitialAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/1033173712'
-      : 'ca-app-pub-3940256099942544/4411468910';
+      ? FlavorConfig.instance.androidAdIds.interstitial
+      : FlavorConfig.instance.iosAdIds.interstitial;
 
   static String get rewardedAdUnitId => Platform.isAndroid
-      ? 'ca-app-pub-3940256099942544/5224354917'
-      : 'ca-app-pub-3940256099942544/1712485313';
+      ? FlavorConfig.instance.androidAdIds.rewarded
+      : FlavorConfig.instance.iosAdIds.rewarded;
 
   // --- Interstitial Ad ---
 

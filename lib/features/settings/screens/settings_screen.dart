@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/flavor_config.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../core/widgets/shared_app_bar.dart';
 import '../../article_detail/screens/article_webview_screen.dart';
@@ -9,7 +10,7 @@ class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   void _openWebView(BuildContext context, String title, String url) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (context) => ArticleWebViewScreen(url: url, title: title),
       ),
@@ -50,7 +51,7 @@ class SettingsScreen extends ConsumerWidget {
          MediaQuery.of(context).platformBrightness == Brightness.dark);
 
     return Scaffold(
-      appBar: const SharedAppBar(title: 'SETTINGS'),
+      appBar: SharedAppBar(title: FlavorConfig.instance.labels['headerSettings']!),
       body: Container(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: ListView(

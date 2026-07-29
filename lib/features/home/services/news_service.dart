@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/services/database_service.dart';
+import '../../../core/config/flavor_config.dart';
 import '../model/news_article.dart';
 
 class NewsService {
@@ -14,7 +15,7 @@ class NewsService {
   Future<List<NewsArticle>> fetchNews({
     String searchQuery = '',
   }) async {
-    String queryPart = 'sourcecountry:unitedstates';
+    String queryPart = 'sourcecountry:${FlavorConfig.instance.countryQuery}';
     
     if (searchQuery.isNotEmpty) {
       queryPart = '$queryPart+AND+$searchQuery';
@@ -38,7 +39,7 @@ class NewsService {
   Future<List<NewsArticle>> fetchTrending({int maxRecords = 15}) async {
     try {
       final url = Uri.parse(
-        'https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:unitedstates&mode=ArtList&sort=relevance&maxrecords=$maxRecords&format=json&timespan=24h',
+        'https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:${FlavorConfig.instance.countryQuery}&mode=ArtList&sort=relevance&maxrecords=$maxRecords&format=json&timespan=24h',
       );
       final articles = await _fetch(url);
       await _db.cacheArticles(articles.take(_maxCacheItems).toList(), 'trending');
@@ -52,7 +53,7 @@ class NewsService {
 
   Future<List<NewsArticle>> searchNews(String query) async {
     final url = Uri.parse(
-      'https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:unitedstates+AND+$query&mode=ArtList&sort=datedesc&maxrecords=$_defaultFetchSize&format=json',
+      'https://api.gdeltproject.org/api/v2/doc/doc?query=sourcecountry:${FlavorConfig.instance.countryQuery}+AND+$query&mode=ArtList&sort=datedesc&maxrecords=$_defaultFetchSize&format=json',
     );
 
     try {

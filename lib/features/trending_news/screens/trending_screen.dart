@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/config/flavor_config.dart';
 import '../../../core/widgets/shared_app_bar.dart';
 import '../../home/providers/trending_notifier.dart';
 import '../widgets/trending_item_skeleton.dart';
@@ -14,7 +15,7 @@ class TrendingScreen extends ConsumerWidget {
     final trendingAsyncValue = ref.watch(trendingNotifierProvider);
 
     return Scaffold(
-      appBar: const SharedAppBar(title: 'TRENDING'),
+      appBar: SharedAppBar(title: FlavorConfig.instance.labels['headerTrending']!),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(trendingNotifierProvider.notifier).loadTrending(forceRefresh: true);
